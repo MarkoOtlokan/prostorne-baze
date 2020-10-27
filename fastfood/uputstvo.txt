@@ -60,6 +60,7 @@ CREATE INDEX fki_fastfoods_franchise ON fastfoods(franchise);
 
 
 //importujemo roads.shp kroz pgAdmin3
+//shp2pgsql -I -s 2263 roadtrl020.shp roads | sudo -u postgres psql postgres
 
 
 SELECT AddGeometryColumn('public', 'roads', 'geom_tr', 2163, 'MULTILINESTRING',2);
