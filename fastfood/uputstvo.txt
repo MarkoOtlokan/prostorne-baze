@@ -1,0 +1,85 @@
+CREATE SCHEMA prostorne;
+CREATE TABLE prostorne.lu_franchises(
+franchise_code char(1) PRIMARY KEY,
+franchise_name varchar(100));
+
+INSERT INTO prostorne.lu_franchises(franchise_code, franchise_name)
+VALUES ('b', 'Burger King'),
+        ('c', 'Carl''s Jr'),
+        ('h', 'Hardee''s'),
+        ('i', 'In-N-Out'),
+        ('j', 'Jack in the Box'),
+        ('k', 'Kentucky Fried Chicken'),
+        ('m', 'McDonald''s'),
+        ('p', 'Pizza Hut'),
+        ('t', 'Taco Bell'),
+        ('w', 'Wendy''s');
+
+CREATE TABLE prostorne.fastfoods(
+franchise char(1) NOT NULL,
+lat double precision,
+lon double precision );
+
+
+
+// ovo je sql naredba za import csv podataka iz fajla u tabelu
+// navesti odgovarajaucu putanju do fajla
+
+COPY fastfoods FROM '~/programiranje/prostorne-baze/fastfood/fastfoods.csv' DELIMITER ',';
+
+// moze to isto i iz psql konzole
+
+\copy prostorne.fastfoods FROM '/home/tloken/programiranje/prostorne-baze/fastfood/fastfoods.csv' DELIMITER ',';
+
+
+
+SELECT AddGeometryColumn('public', 'prostorne.fastfoods', 'geom', 2163, 'POINT',2);
+
+UPDATE fastfoods
+   SET geom = ST_Transform(
+      ST_GeomFromText('POINT(' || lon || ' ' || lat || ')',4326), 2163);
+
+CREATE INDEX idx_fastfoods_geom
+  ON fastfoods USING gist(geom);
+
+
+// dodamo u tabelu primarni kljuc i strani kljuc na tabelu lu_franchises
+
+
+ALTER TABLE fastfoods ADD COLUMN ff_id SERIAL PRIMARY KEY;
+
+ALTER TABLE fastfoods
+	ADD CONSTRAINT fk_fastfoods_franchise
+	FOREIGN KEY (franchise)
+	REFERENCES lu_franchises (franchise_code)
+   ON UPDATE CASCADE ON DELETE RESTRICT;
+
+CREATE INDEX fki_fastfoods_franchise ON fastfoods(franchise);
+
+
+
+
+//importujemo roads.shp kroz pgAdmin3
+
+
+SELECT AddGeometryColumn('public', 'roads', 'geom_tr', 2163, 'MULTILINESTRING',2);
+
+UPDATE roads SET geom_tr = ST_Transform(geom, 2163);
+
+SELECT DropGeometryColumn('public', 'roads', 'geom');
+
+
+
+// sledece tri naredbe prebacuju iz kolone geom_tr u kolonu geom samo da se kolona ne bi zvala geom_tr (stvar ukusa)
+
+SELECT AddGeometryColumn('public', 'roads', 'geom', 2163, 'MULTILINESTRING',2);
+
+UPDATE roads SET geom = geom_tr;
+
+SELECT DropGeometryColumn('public', 'roads', 'geom_tr');
+
+
+
+
+
+CREATE INDEX idx_roads_geom ON roads USING gist(geom);
